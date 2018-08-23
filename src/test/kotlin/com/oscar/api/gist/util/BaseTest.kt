@@ -27,36 +27,26 @@ open class BaseTest {
     /** A default object of the Gist class that will be used as test data */
     protected val testGist: Gist
 
-
     init {
-        // Building the default specsWithAuthorization
-        val specsBuilder = RequestSpecBuilder()
-                .setContentType(ContentType.JSON)
-                .setAccept("application/vnd.github.v3+json")
-
-        val specsBuilderNot = RequestSpecBuilder()
-                .setContentType(ContentType.JSON)
-                .setAccept("application/vnd.github.v3+json")
-
         when(Config.env) {
             Environments.PROD -> {
-                specsBuilder.setBaseUri("https://api.github.com")
-                specsBuilder.setBasePath("/gists")
-                specsBuilder.setPort(443)
+                specsWithoutAuthorization = buildSpecs(
+                        baseURI = "https://api.github.com",
+                        basePath = "/gists",
+                        port = 443
+                )
 
-                specsBuilderNot.setBaseUri("https://api.github.com")
-                specsBuilderNot.setBasePath("/gists")
-                specsBuilderNot.setPort(443)
+                specsWithAuthorization = buildSpecs(
+                        baseURI = "https://api.github.com",
+                        basePath = "/gists",
+                        port = 443,
+                        headers = hashMapOf("Authorization" to authorization)
+                )
             }
             Environments.LOCAL -> TODO()
             Environments.DEV -> TODO()
             Environments.STAGE -> TODO()
         }
-
-        specsWithoutAuthorization = specsBuilderNot.build()
-
-        specsBuilder.addHeader("Authorization", authorization)
-        specsWithAuthorization = specsBuilder.build()
 
         // Creating the gist object with test data
         val defaultFile = File(
@@ -213,4 +203,18 @@ open class BaseTest {
         getAllGistsId().forEach { deleteGist(it) }
         Assert.assertEquals(0, getAllGists().count())
     }
+
+    private fun buildSpecs(baseURI: String, basePath: String, port: Int, headers: HashMap<String, String>? = null) : RequestSpecification {
+        val specs = RequestSpecBuilder()
+                .setContentType(ContentType.JSON)
+                .setAccept("application/vnd.github.v3+json")
+                .setBaseUri(baseURI)
+                .setBasePath(basePath)
+                .setPort(port)
+
+        headers?.forEach { (key, value) -> specs.addHeader(key, value) }
+        return specs.build()
+    }
+
+
 }
